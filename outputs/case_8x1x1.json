@@ -1,0 +1,57 @@
+{
+  "provider": "openai-compatible",
+  "prompt": "黄昏时分的海岸线，远处灯塔，平静海面，电影感光线",
+  "target_ratio": 8.0,
+  "width": 8192,
+  "height": 1024,
+  "actual_ratio": 8.0,
+  "calls": 3,
+  "overlap": 464,
+  "elapsed": 84.66,
+  "metrics": {
+    "calls": 3,
+    "overlap_px": 464,
+    "canvas_ratios": [
+      2.953,
+      2.953
+    ],
+    "max_single_call_ratio": 2.953,
+    "seam_score_max": 1.4,
+    "seam_score_avg": 1.2,
+    "color_shift_max": 8.5,
+    "size_ok": true,
+    "ratio_ok": true
+  },
+  "steps": [
+    {
+      "index": 0,
+      "mode": "base",
+      "canvas_width": 3072,
+      "new_width": 3072,
+      "color_shift": 0.0,
+      "seam_score": 0.0,
+      "seconds": 22.01
+    },
+    {
+      "index": 1,
+      "mode": "edits",
+      "canvas_width": 3024,
+      "new_width": 2560,
+      "color_shift": 8.5,
+      "seam_score": 1.0,
+      "seconds": 32.72
+    },
+    {
+      "index": 2,
+      "mode": "edits",
+      "canvas_width": 3024,
+      "new_width": 2560,
+      "color_shift": 8.15,
+      "seam_score": 1.4,
+      "seconds": 28.57
+    }
+  ],
+  "created_at": "2026-11-05T17:13:25",
+  "image_png": "case_8x1x1.png",
+  "image_jpg": "case_8x1x1.jpg"
+}

@@ -1,0 +1,10 @@
+# 不要把密钥和运行产物打进镜像
+.env
+.env.local
+.env.*.local
+outputs/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.gitignore

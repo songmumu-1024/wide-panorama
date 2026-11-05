@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+outputs/selfcheck/
+outputs/debug*.png
+outputs/debug*.jpg
+outputs/debug*.json
+.pytest_cache/

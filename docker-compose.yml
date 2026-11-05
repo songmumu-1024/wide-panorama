@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    image: wide-panorama:latest
+    container_name: wide-panorama
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      PORT: "8000"
+    volumes:
+      # 案例与元数据落在宿主机，容器重建不丢
+      - ./outputs:/app/outputs:z
+    restart: unless-stopped
