@@ -15,7 +15,7 @@ from .imaging import (
     blend_overlap,
     color_match,
     color_shift,
-    resize,
+    resize_cover,
     seam_score,
     to_array,
     to_image,
@@ -96,6 +96,7 @@ def generate_panorama(
     prompt: str,
     ratio: str | float = "6:1",
     height: int = 1024,
+    width: int | None = None,
     provider: ImageProvider | None = None,
     output_dir: str = "outputs",
     max_single_ratio: float = 3.0,
@@ -112,7 +113,8 @@ def generate_panorama(
 
     t0 = time.time()
     target = parse_ratio(ratio)
-    plan = plan_canvas(target, height, max_single_ratio, overlap_frac)
+    plan = plan_canvas(target, height, max_single_ratio, overlap_frac, width=width)
+    target = plan.actual_ratio
 
     def notify(pct: int, msg: str) -> None:
         if on_progress:
@@ -131,7 +133,7 @@ def generate_panorama(
     )
     step_t0 = time.time()
     notify(5, "生成首段画面")
-    base_img = resize(provider.text_to_image(ctx, plan.base_width, plan.height), plan.base_width, plan.height)
+    base_img = resize_cover(provider.text_to_image(ctx, plan.base_width, plan.height), plan.base_width, plan.height)
     canvas = to_array(base_img)
 
     steps: list[StepRecord] = [
@@ -169,7 +171,7 @@ def generate_panorama(
         else:
             seg_img = provider.text_to_image(ctx, canvas_w, plan.height)
             mode = "text-only"
-        seg_img = resize(seg_img, canvas_w, plan.height)
+        seg_img = resize_cover(seg_img, canvas_w, plan.height)
         seg = to_array(seg_img)
 
         # 融合前先量化色差，再把色彩对齐到左侧重叠区
@@ -198,6 +200,8 @@ def generate_panorama(
         raise RuntimeError(f"输出尺寸异常：{canvas.shape[1]}x{canvas.shape[0]}，期望 {plan.width}x{plan.height}")
 
     seam_values = [s.seam_score for s in steps[1:]] or [0.0]
+    size_ok = canvas.shape[1] == plan.width and canvas.shape[0] == plan.height
+    ratio_ok = (plan.width / plan.height) > max_single_ratio + 1e-9
     metrics = {
         "calls": plan.calls,
         "overlap_px": plan.overlap,
@@ -206,8 +210,8 @@ def generate_panorama(
         "seam_score_max": round(max(seam_values), 2),
         "seam_score_avg": round(sum(seam_values) / len(seam_values), 2),
         "color_shift_max": round(max([s.color_shift for s in steps[1:]] or [0.0]), 2),
-        "size_ok": True,
-        "ratio_ok": True,
+        "size_ok": size_ok,
+        "ratio_ok": ratio_ok,
     }
 
     result = GenerateResult(

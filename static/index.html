@@ -61,7 +61,8 @@
   }
   .chip:hover { border-color: #40527a; color: var(--text); }
   .chip.active { border-color: var(--accent); color: #fff; background: #16233c; }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 18px; }
+  @media (max-width: 620px) { .row { grid-template-columns: 1fr; } }
   button.primary {
     width: 100%; margin-top: 20px; padding: 13px 16px;
     border: 0; border-radius: 12px; cursor: pointer;
@@ -136,6 +137,11 @@
           </select>
           <div class="hint">宽度 = 比例 × 高度，严格按目标输出，不做拉伸或裁切。</div>
         </div>
+        <div>
+          <label for="width">目标宽度（可选）</label>
+          <input id="width" type="number" min="64" step="8" placeholder="如 6144，留空按比例算" style="margin-top:8px" />
+          <div class="hint">填了就按你指定的尺寸输出，需为 8 的倍数。</div>
+        </div>
       </div>
 
       <button class="primary" id="go">生成全景图</button>
@@ -181,6 +187,7 @@ function setRatio(value) {
     el.classList.toggle("active", el.dataset.ratio === value);
   });
   $("ratioCustom").value = "";
+  $("width").value = "";
   updateEstimate();
 }
 document.querySelectorAll("#ratios .chip").forEach(el => {
@@ -192,19 +199,39 @@ $("ratioCustom").addEventListener("input", (e) => {
   updateEstimate();
 });
 $("height").addEventListener("change", updateEstimate);
+$("width").addEventListener("input", updateEstimate);
 $("examples").addEventListener("click", (e) => {
   if (e.target.classList.contains("chip")) $("prompt").value = e.target.textContent;
 });
 
+function planCalls(width, height) {
+  const maxWidth = Math.round(3 * height / 8) * 8;
+  const overlap = Math.max(8, Math.round(0.15 * maxWidth / 8) * 8);
+  const base = Math.min(width, maxWidth);
+  const remaining = width - base;
+  const maxNew = maxWidth - overlap;
+  return 1 + (remaining > 0 ? Math.ceil(remaining / maxNew) : 0);
+}
+
 function updateEstimate() {
-  const m = currentRatio.match(/(\d+(?:\.\d+)?)\s*[:\/x]\s*(\d+(?:\.\d+)?)/);
-  if (!m) { $("estimate").textContent = "比例格式：如 6:1"; return; }
-  const ratio = parseFloat(m[1]) / parseFloat(m[2]);
-  const maxSingle = 3, overlap = 0.15;
-  const maxNew = maxSingle * (1 - overlap);
-  const calls = ratio <= maxSingle ? 1 : 1 + Math.ceil((ratio - maxSingle) / maxNew);
-  const width = Math.round(ratio * parseInt($("height").value) / 8) * 8;
-  $("estimate").textContent = `按当前设置：输出约 ${width} × ${$("height").value} px，预计 ${calls} 次生成调用`;
+  const height = parseInt($("height").value);
+  const widthInput = parseInt($("width").value);
+  let width;
+  if (widthInput) {
+    width = widthInput;
+  } else {
+    const m = currentRatio.match(/(\d+(?:\.\d+)?)\s*[:\/x]\s*(\d+(?:\.\d+)?)/);
+    if (!m) { $("estimate").textContent = "比例格式：如 6:1"; return; }
+    const ratio = parseFloat(m[1]) / parseFloat(m[2]);
+    if (ratio <= 3) { $("estimate").textContent = "目标宽高比需大于 3:1"; return; }
+    width = Math.round(ratio * height / 8) * 8;
+  }
+  if (width % 8 !== 0) { $("estimate").textContent = "目标宽度需为 8 的倍数"; return; }
+  if (width / height <= 3) {
+    $("estimate").textContent = `目标宽高比需大于 3:1（当前 ${(width / height).toFixed(2)}:1）`;
+    return;
+  }
+  $("estimate").textContent = `按当前设置：输出 ${width} × ${height} px，预计 ${planCalls(width, height)} 次生成调用`;
 }
 
 function resetUI() {
@@ -220,14 +247,35 @@ function resetUI() {
 $("go").addEventListener("click", async () => {
   const prompt = $("prompt").value.trim();
   if (!prompt) { $("error").hidden = false; $("error").textContent = "请填写提示词"; return; }
+
+  const height = parseInt($("height").value);
+  const widthValue = $("width").value.trim();
+  let width = null;
+  if (widthValue) {
+    width = parseInt(widthValue);
+    if (!width || width % 8 !== 0) {
+      $("error").hidden = false; $("error").textContent = "目标宽度需为 8 的倍数"; return;
+    }
+    if (width / height <= 3) {
+      $("error").hidden = false; $("error").textContent = "目标宽高比必须大于 3:1"; return;
+    }
+  } else {
+    const m = currentRatio.match(/(\d+(?:\.\d+)?)\s*[:\/x]\s*(\d+(?:\.\d+)?)/);
+    if (!m || parseFloat(m[1]) / parseFloat(m[2]) <= 3) {
+      $("error").hidden = false; $("error").textContent = "请填写有效比例，且宽高比需大于 3:1"; return;
+    }
+  }
+
   resetUI();
   $("go").disabled = true;
   $("statusText").textContent = "提交任务…";
   try {
+    const body = { prompt, ratio: currentRatio, height };
+    if (width !== null) body.width = width;
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, ratio: currentRatio, height: parseInt($("height").value) }),
+      body: JSON.stringify(body),
     });
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.detail || "提交失败");

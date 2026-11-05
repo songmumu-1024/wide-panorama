@@ -45,6 +45,8 @@ class Settings:
     preset_sizes: tuple[str, ...]
     enable_edits: bool
     output_dir: str
+    # 同时运行的生成任务上限，避免公网 Demo 被并发请求打爆额度/内存
+    max_concurrent_jobs: int
 
     @property
     def api_configured(self) -> bool:
@@ -68,4 +70,5 @@ def get_settings() -> Settings:
         ),
         enable_edits=_env("IMAGE_ENABLE_EDITS", "1") not in {"0", "false", "False"},
         output_dir=_env("OUTPUT_DIR", os.path.join(root, "outputs")),
+        max_concurrent_jobs=max(1, int(_env("MAX_CONCURRENT_JOBS", "2"))),
     )

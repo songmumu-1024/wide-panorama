@@ -23,13 +23,19 @@ class Job:
 
 
 class JobStore:
-    def __init__(self) -> None:
+    def __init__(self, max_jobs: int = 200) -> None:
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
+        self._max_jobs = max_jobs
 
     def create(self, params: dict) -> Job:
         job = Job(id=uuid.uuid4().hex[:12], params=params)
         with self._lock:
+            if len(self._jobs) >= self._max_jobs:
+                for old_id, old in list(self._jobs.items()):
+                    if old.status in {"done", "error"}:
+                        del self._jobs[old_id]
+                        break
             self._jobs[job.id] = job
         return job
 

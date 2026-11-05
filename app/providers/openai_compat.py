@@ -16,7 +16,7 @@ import numpy as np
 import requests
 from PIL import Image
 
-from ..imaging import resize, to_array, to_image
+from ..imaging import resize_cover, to_array, to_image
 from .base import GenContext, ImageProvider, ProviderError
 
 
@@ -74,7 +74,7 @@ class OpenAICompatProvider(ImageProvider):
     def _fallback(self, ctx, context, width, height, overlap, reason: str) -> Image.Image:
         new_w = width - overlap
         gen = self._generate(ctx.prompt, new_w, height)
-        gen = resize(gen, new_w, height)
+        gen = resize_cover(gen, new_w, height)
         combined = np.concatenate([to_array(context), to_array(gen)], axis=1)
         self._meta = {"mode": "fallback-text", "reason": reason[:180]}
         return to_image(combined)
@@ -110,7 +110,7 @@ class OpenAICompatProvider(ImageProvider):
         if resp.status_code >= 400:
             raise ProviderError(f"edits {resp.status_code}: {resp.text[:300]}")
         img = self._decode(resp)
-        img = resize(img, width, height)
+        img = resize_cover(img, width, height)
         self._meta = {"mode": "edits", "size": size, "canvas": f"{width}x{height}"}
         return img
 
@@ -135,7 +135,7 @@ class OpenAICompatProvider(ImageProvider):
             if resp.status_code < 400:
                 img = self._decode(resp)
                 self._meta = {"mode": "generations", "size": preset, "resized": True}
-                return resize(img, width, height)
+                return resize_cover(img, width, height)
         if resp.status_code >= 400:
             raise ProviderError(f"generations {resp.status_code}: {resp.text[:300]}")
         img = self._decode(resp)

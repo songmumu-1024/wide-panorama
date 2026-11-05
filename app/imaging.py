@@ -13,10 +13,20 @@ def to_image(arr: np.ndarray) -> Image.Image:
     return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB")
 
 
-def resize(img: Image.Image, width: int, height: int) -> Image.Image:
+def resize_cover(img: Image.Image, width: int, height: int) -> Image.Image:
+    """等比缩放到覆盖目标画布后居中裁切，绝不拉伸变形。
+
+    网关若忽略请求尺寸（例如只返回 1024×1024），直接 resize 会把画面横向压扁，
+    违反“不能拉伸”的要求；这里用 cover 保证像素比例始终正确。
+    """
     if img.size == (width, height):
         return img
-    return img.resize((width, height), Image.LANCZOS)
+    src_w, src_h = img.size
+    scale = max(width / src_w, height / src_h)
+    new_w, new_h = max(width, round(src_w * scale)), max(height, round(src_h * scale))
+    img = img.resize((new_w, new_h), Image.LANCZOS)
+    left, top = (new_w - width) // 2, (new_h - height) // 2
+    return img.crop((left, top, left + width, top + height))
 
 
 def color_match(

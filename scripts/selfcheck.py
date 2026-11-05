@@ -20,6 +20,7 @@ def check_geometry() -> None:
         assert plan.width == round(ratio * 1024 / 8) * 8, plan
         assert plan.base_width + sum(plan.extensions) == plan.width, plan
         assert all(r <= 3.0001 for r in plan.canvas_ratios), plan
+        assert plan.actual_ratio > 3, plan
         assert plan.overlap > 0
         print(
             f"    {ratio:g}:1 -> {plan.width}x{plan.height}，"
@@ -27,6 +28,16 @@ def check_geometry() -> None:
             f"重叠 {plan.overlap}px，调用 {plan.calls} 次，"
             f"画布比例 {[round(r, 2) for r in plan.canvas_ratios]}"
         )
+
+    # 用户直接指定目标尺寸时，宽度必须精确等于请求值
+    plan = plan_canvas(6.0, height=1024, width=4992)
+    assert plan.width == 4992, plan
+    assert plan.base_width + sum(plan.extensions) == 4992, plan
+    assert all(r <= 3.0001 for r in plan.canvas_ratios), plan
+    print(
+        f"    指定宽度 4992x1024 -> 调用 {plan.calls} 次，"
+        f"延伸 {plan.extensions}，画布比例 {[round(r, 2) for r in plan.canvas_ratios]}"
+    )
 
 
 def check_pipeline() -> None:

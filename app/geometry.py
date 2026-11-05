@@ -63,6 +63,7 @@ def plan_canvas(
     height: int = 1024,
     max_single_ratio: float = 3.0,
     overlap_frac: float = 0.15,
+    width: int | None = None,
 ) -> Plan:
     if height < 64:
         raise ValueError("高度至少 64 像素")
@@ -75,7 +76,12 @@ def plan_canvas(
     overlap = max(8, int(round(overlap_frac * max_width / 8.0)) * 8)
     overlap = min(overlap, max_width // 2)  # 重叠不能吃掉整个画布
 
-    width = max(8, int(round(target_ratio * height / 8.0)) * 8)
+    if width is None:
+        width = max(8, int(round(target_ratio * height / 8.0)) * 8)
+    else:
+        width = int(width)
+        if width < 8:
+            raise ValueError("目标宽度至少 8 像素")
     base_width = min(width, max_width)
 
     remaining = width - base_width
