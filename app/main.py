@@ -36,6 +36,8 @@ class GenerateRequest(BaseModel):
     width: int | None = Field(default=None, ge=64, le=16384)
     height: int = Field(default=settings.default_height, ge=256, le=2048)
     seed: int | None = None
+    # 轻度锐化，缓解网关低分辨率再放大带来的“软”感
+    sharpen: bool = True
 
 
 def _run_job(job_id: str, req: GenerateRequest) -> None:
@@ -55,6 +57,7 @@ def _run_job(job_id: str, req: GenerateRequest) -> None:
             seed=req.seed if req.seed is not None else 20261105,
             on_progress=lambda pct, msg: store.progress(job_id, pct, msg),
             stem=stem,
+            sharpen=req.sharpen,
         )
         store.finish(job_id, {**asdict(result), "files": {
             "png": f"/files/{result.image_png}",
@@ -107,6 +110,7 @@ def create_job(req: GenerateRequest) -> dict:
             "ratio": req.ratio,
             "width": req.width,
             "height": req.height,
+            "sharpen": req.sharpen,
         })
         threading.Thread(target=_run_job, args=(job.id, req), daemon=True).start()
     except Exception:

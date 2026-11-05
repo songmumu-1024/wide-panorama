@@ -110,8 +110,9 @@ class OpenAICompatProvider(ImageProvider):
         if resp.status_code >= 400:
             raise ProviderError(f"edits {resp.status_code}: {resp.text[:300]}")
         img = self._decode(resp)
+        raw_w, raw_h = img.size
         img = resize_cover(img, width, height)
-        self._meta = {"mode": "edits", "size": size, "canvas": f"{width}x{height}"}
+        self._meta = {"mode": "edits", "size": size, "canvas": f"{width}x{height}", "out": f"{raw_w}x{raw_h}"}
         return img
 
     def _generate(self, prompt: str, width: int, height: int) -> Image.Image:
@@ -134,12 +135,13 @@ class OpenAICompatProvider(ImageProvider):
             )
             if resp.status_code < 400:
                 img = self._decode(resp)
-                self._meta = {"mode": "generations", "size": preset, "resized": True}
+                raw_w, raw_h = img.size
+                self._meta = {"mode": "generations", "size": preset, "resized": True, "out": f"{raw_w}x{raw_h}"}
                 return resize_cover(img, width, height)
         if resp.status_code >= 400:
             raise ProviderError(f"generations {resp.status_code}: {resp.text[:300]}")
         img = self._decode(resp)
-        self._meta = {"mode": "generations", "size": size}
+        self._meta = {"mode": "generations", "size": size, "out": f"{img.width}x{img.height}"}
         return img
 
     def _pick_size(self, width: int, height: int) -> str:

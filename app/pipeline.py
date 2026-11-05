@@ -17,6 +17,7 @@ from .imaging import (
     color_shift,
     resize_cover,
     seam_score,
+    sharpen_image,
     to_array,
     to_image,
 )
@@ -28,7 +29,7 @@ ProgressFn = Callable[[int, str], None]
 def build_prompts(prompt: str, index: int, total: int, overlap_ratio: float) -> tuple[str, str]:
     base = (
         f"{prompt}. Ultra-wide panoramic scene, seamless composition, consistent horizon line, "
-        "natural lighting and rich detail, photographic quality, no text, no watermark."
+        "natural lighting and rich detail, crisp textures, photographic quality, no text, no watermark."
     )
     cont = (
         f"{prompt}. Continue this panoramic scene to the right seamlessly. "
@@ -76,9 +77,12 @@ def _save_outputs(
     height: int,
     meta: dict,
     stem: str | None = None,
+    sharpen: int = 45,
 ) -> tuple[str, str, str]:
     os.makedirs(out_dir, exist_ok=True)
     img = to_image(arr)
+    if sharpen > 0:
+        img = sharpen_image(img, sharpen)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     slug = f"{ratio:g}".replace(".", "p")
     stem = stem or f"panorama_{slug}x1_{width}x{height}_{stamp}"
@@ -104,6 +108,7 @@ def generate_panorama(
     seed: int = 20261105,
     on_progress: ProgressFn | None = None,
     stem: str | None = None,
+    sharpen: bool = True,
 ) -> GenerateResult:
     if provider is None:
         raise ValueError("必须提供 provider")
@@ -243,7 +248,7 @@ def generate_panorama(
         "created_at": datetime.now().isoformat(timespec="seconds"),
     }
     png_path, jpg_path, meta_path = _save_outputs(
-        canvas, output_dir, target, plan.width, plan.height, payload, stem
+        canvas, output_dir, target, plan.width, plan.height, payload, stem, 45 if sharpen else 0
     )
     result.image_png = os.path.basename(png_path)
     result.image_jpg = os.path.basename(jpg_path)

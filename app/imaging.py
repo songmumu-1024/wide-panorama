@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 
 def to_array(img: Image.Image) -> np.ndarray:
@@ -11,6 +11,16 @@ def to_array(img: Image.Image) -> np.ndarray:
 
 def to_image(arr: np.ndarray) -> Image.Image:
     return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="RGB")
+
+
+def sharpen_image(img: Image.Image, percent: int = 45) -> Image.Image:
+    """轻度 USM 锐化，弥补网关把 3:1 画布压到约 1.57MP 后再放大的软感。
+
+    radius 小、threshold 留一点，避免天空等平滑区域出现噪点或白边。
+    """
+    if percent <= 0:
+        return img
+    return img.filter(ImageFilter.UnsharpMask(radius=1.2, percent=percent, threshold=3))
 
 
 def resize_cover(img: Image.Image, width: int, height: int) -> Image.Image:
