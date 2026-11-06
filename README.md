@@ -147,6 +147,8 @@ wide-panorama/
 
 ## 5. 快速开始
 
+环境要求：**Python 3.10+**（本机实测 3.13.9），依赖见 [`requirements.txt`](requirements.txt)（FastAPI、Uvicorn、Pillow、NumPy、Requests、python-multipart）。默认 `mock` 模式，无需 API Key 即可跑通。
+
 ```powershell
 python -m pip install -r requirements.txt
 python scripts\selfcheck.py          # 离线自检，无需 API Key
